@@ -4,6 +4,8 @@ services:
     container_name: server-dashboard
     restart: unless-stopped
     user: "0:0"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "${PORT:-4321}:4321"
     volumes:
