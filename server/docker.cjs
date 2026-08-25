@@ -26,11 +26,16 @@ async function getContainers() {
 
   try {
     const containers = await d.listContainers({ all: true })
-    return await Promise.all(containers.map(async (c) => {
+
+    const results = []
+    for (const c of containers) {
       let stats = { cpu_percent: 0, memory_usage: 0, memory_limit: 0, network_rx: 0, network_tx: 0 }
       if (c.State === 'running') {
         try {
-          const stream = await d.getContainer(c.Id).stats({ stream: false, stopGracePeriod: 3 })
+          const stream = await Promise.race([
+            d.getContainer(c.Id).stats({ stream: false }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('stats timeout')), 3000))
+          ])
           if (stream?.cpu_stats) {
             const cpuDelta = stream.cpu_stats.cpu_usage.total_usage - (stream.precpu_stats?.cpu_usage?.total_usage || 0)
             const systemDelta = stream.cpu_stats.system_cpu_usage - (stream.precpu_stats?.system_cpu_usage || 0)
@@ -56,7 +61,7 @@ async function getContainers() {
       const started = c.State === 'running' ? c.StartedAt : null
       const uptimeSec = started ? Math.floor((Date.now() - new Date(started).getTime()) / 1000) : 0
 
-      return {
+      results.push({
         id: c.Id.slice(0, 12),
         name,
         image,
@@ -70,8 +75,9 @@ async function getContainers() {
         ports,
         uptime: uptimeSec,
         createdAt: c.Created,
-      }
-    }))
+      })
+    }
+    return results
   } catch (err) {
     if (err.message?.includes('ENOENT')) {
       docker = null

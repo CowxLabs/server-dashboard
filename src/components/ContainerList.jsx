@@ -70,7 +70,7 @@ export default memo(function ContainerList({ containers = [] }) {
               <th className={clsx(thCls, 'text-right')} onClick={() => toggleSort('cpu')}><span className="flex items-center gap-1.5 justify-end">CPU <SortIcon col="cpu" /></span></th>
               <th className={clsx(thCls, 'text-right')} onClick={() => toggleSort('memory')}><span className="flex items-center gap-1.5 justify-end">Memory <SortIcon col="memory" /></span></th>
               <th className={clsx(thCls, 'hidden lg:table-cell')}>Ports</th>
-              <th className={clsx(thCls, 'hidden xl:table-cell')} onClick={() => toggleSort('uptime')}><span className="flex items-center gap-1.5">Uptime <SortIcon col="uptime" /></span></th>
+              <th className={clsx(thCls, 'hidden lg:table-cell')} onClick={() => toggleSort('uptime')}><span className="flex items-center gap-1.5">Uptime <SortIcon col="uptime" /></span></th>
             </tr>
           </thead>
           <tbody>
@@ -82,7 +82,7 @@ export default memo(function ContainerList({ containers = [] }) {
                 <td className={clsx('px-4 py-3 text-right font-mono text-xs', c.cpu > 5 ? 'text-[#fb923c] font-semibold' : dark ? 'text-[#a0a8c8]' : 'text-gray-600')}>{(c.cpu || 0).toFixed(1)}%</td>
                 <td className="px-4 py-3 text-right"><div className="flex items-center justify-end gap-2"><div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: dark ? '#252837' : '#f1f5f9' }}><div className={clsx('h-full rounded-full transition-all duration-500', (c.memory || 0) / (c.maxMemory || 1) > 0.8 ? 'bg-[#fb923c]' : 'bg-[#6c8cff]')} style={{ width: `${Math.min(((c.memory || 0) / (c.maxMemory || 1)) * 100, 100)}%` }} /></div><span className={clsx('font-mono text-xs', dark ? 'text-[#a0a8c8]' : 'text-gray-600')}>{c.memory >= 1024 ? `${(c.memory / 1024).toFixed(1)}G` : `${c.memory}M`}</span></div></td>
                 <td className={clsx('px-4 py-3 font-mono text-xs hidden lg:table-cell', dark ? 'text-[#5a6180]' : 'text-gray-400')}>{c.ports || '--'}</td>
-                <td className={clsx('px-4 py-3 text-xs hidden xl:table-cell', dark ? 'text-[#a0a8c8]' : 'text-gray-600')}>{formatUptime(c.uptime)}</td>
+                <td className={clsx('px-4 py-3 text-xs hidden lg:table-cell', dark ? 'text-[#a0a8c8]' : 'text-gray-600')}>{formatUptime(c.uptime)}</td>
               </tr>
             ))}
           </tbody>
