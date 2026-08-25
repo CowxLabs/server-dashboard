@@ -7,32 +7,53 @@ const cors = require('cors')
 const helmet = require('helmet')
 const compression = require('compression')
 const path = require('path')
-const { execSync } = require('child_process')
+const { exec } = require('child_process')
+const { promisify } = require('util')
 const os = require('os')
+
+const execAsync = promisify(exec)
 
 const { collectStats, getSystemInfo } = require('./stats.cjs')
 const { getContainers, getDockerInfo } = require('./docker.cjs')
 const { checkAllServices, getAllServices, checkService, reloadServices, addService, updateService, removeService } = require('./healthcheck.cjs')
 const db = require('./db.cjs')
-const { authMiddleware, loginHandler, sanitizeMiddleware } = require('./auth.cjs')
+const { authMiddleware, loginHandler, sanitizeMiddleware, verifyToken } = require('./auth.cjs')
 const { loadConfig, saveConfig } = require('./config.cjs')
 const { loginLimiter, apiLimiter, writeLimiter, checkBruteForce, resetBruteForce } = require('./ratelimit.cjs')
 
+const isProduction = process.env.NODE_ENV === 'production'
+
+if (isProduction && (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'change-me-in-production')) {
+  console.error('[FATAL] JWT_SECRET must be set to a strong random value in production')
+  process.exit(1)
+}
+if (isProduction && (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD === 'admin')) {
+  console.error('[FATAL] ADMIN_PASSWORD must be set to a strong value in production')
+  process.exit(1)
+}
+
 const app = express()
 const server = http.createServer(app)
+
+const corsOrigin = process.env.CORS_ORIGIN
 const io = new Server(server, {
-  cors: { origin: process.env.CORS_ORIGIN || true, methods: ['GET', 'POST'] },
+  cors: { origin: corsOrigin || !isProduction, methods: ['GET', 'POST'] },
   transports: ['polling', 'websocket'],
   allowUpgrades: true,
 })
-const isProduction = process.env.NODE_ENV === 'production'
 
-app.use(helmet({
-  contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false,
-}))
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token
+  if (!token) return next(new Error('Authentication required'))
+  const decoded = verifyToken(token)
+  if (!decoded) return next(new Error('Invalid token'))
+  socket.user = decoded
+  next()
+})
+
+app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }))
 app.use(compression())
-app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }))
+app.use(cors({ origin: corsOrigin || !isProduction, credentials: !!corsOrigin }))
 app.use(express.json({ limit: '1mb' }))
 app.use(sanitizeMiddleware)
 
@@ -159,9 +180,16 @@ app.get('/api/system/full', apiLimiter, authMiddleware, (req, res) => {
 app.get('/api/config', apiLimiter, authMiddleware, (req, res) => res.json(appConfig))
 
 app.post('/api/config', apiLimiter, writeLimiter, authMiddleware, (req, res) => {
-  appConfig = { ...appConfig, ...req.body, widgets: { ...appConfig.widgets, ...req.body.widgets } }
+  const { title, refreshInterval, theme, widgets, quickLinks } = req.body
+  appConfig = {
+    ...appConfig,
+    ...(title && { title }),
+    ...(refreshInterval && { refreshInterval: Math.max(parseInt(refreshInterval) || 3000, 1000) }),
+    ...(theme && { theme }),
+    ...(widgets && { widgets: { ...appConfig.widgets, ...widgets } }),
+    ...(Array.isArray(quickLinks) && { quickLinks }),
+  }
   const ok = saveConfig(appConfig)
-  if (req.body.services) reloadServices()
   io.emit('config', appConfig)
   res.json({ success: ok })
 })
@@ -172,7 +200,13 @@ app.post('/api/services', apiLimiter, writeLimiter, authMiddleware, (req, res) =
   if (!/^[a-z0-9-]+$/.test(id)) return res.status(400).json({ error: 'id must be lowercase alphanumeric with hyphens only' })
   if (id.length > 50) return res.status(400).json({ error: 'id too long (max 50 chars)' })
   if (name.length > 100) return res.status(400).json({ error: 'name too long (max 100 chars)' })
-  const svc = addService({ id, name, icon, type, protocol, url, timeout: parseInt(timeout) || 5000 })
+  try {
+    const parsed = new URL(url)
+    if (!['http:', 'https:'].includes(parsed.protocol) && protocol !== 'tcp') throw new Error()
+  } catch {
+    return res.status(400).json({ error: 'Invalid URL format' })
+  }
+  const svc = addService({ id, name, icon, type, protocol: protocol || 'http', url, timeout: parseInt(timeout) || 5000 })
   if (!svc) return res.status(409).json({ error: 'Service with this ID already exists' })
   appConfig.services = getAllServices()
   saveConfig(appConfig)
@@ -246,13 +280,29 @@ let lastContainers = []
 async function broadcastAll() {
   try {
     const stats = collectStats()
+    io.emit('stats', stats)
+    lastStats = stats
+    try {
+      db.prepare('INSERT INTO stats_history (cpu, memory, disk, net_rx, net_tx) VALUES (?, ?, ?, ?, ?)').run(
+        stats.cpu, stats.memory.percent, stats.disk.percent, stats.network.rxSpeed, stats.network.txSpeed
+      )
+    } catch {}
+  } catch (err) {
+    console.error(`[BROADCAST] Stats error: ${err.message}`)
+  }
+
+  try {
     const services = await checkAllServices()
+    io.emit('services', services)
+    lastServices = services
+  } catch (err) {
+    console.error(`[BROADCAST] Services error: ${err.message}`)
+  }
+
+  try {
     const containers = await getContainers()
-
-    db.prepare('INSERT INTO stats_history (cpu, memory, disk, net_rx, net_tx) VALUES (?, ?, ?, ?, ?)').run(
-      stats.cpu, stats.memory.percent, stats.disk.percent, stats.network.rxSpeed, stats.network.txSpeed
-    )
-
+    io.emit('containers', containers)
+    lastContainers = containers
     for (const c of containers) {
       if (c.status === 'running') {
         try {
@@ -262,18 +312,13 @@ async function broadcastAll() {
         } catch {}
       }
     }
-
-    io.emit('stats', stats)
-    io.emit('services', services)
-    io.emit('containers', containers)
-    io.emit('alerts', db.prepare('SELECT * FROM alerts ORDER BY created_at DESC LIMIT 20').all())
-
-    lastStats = stats
-    lastServices = services
-    lastContainers = containers
   } catch (err) {
-    console.error(`[BROADCAST ERROR] ${err.message}`)
+    console.error(`[BROADCAST] Containers error: ${err.message}`)
   }
+
+  try {
+    io.emit('alerts', db.prepare('SELECT * FROM alerts ORDER BY created_at DESC LIMIT 20').all())
+  } catch {}
 }
 
 io.on('connection', (socket) => {
@@ -284,19 +329,25 @@ io.on('connection', (socket) => {
   socket.emit('systemInfo', systemInfo)
   socket.emit('config', appConfig)
 
+  let checking = false
   socket.on('checkService', async (serviceId) => {
-    const services = getAllServices()
-    const svc = services.find(s => s.id === serviceId)
-    if (svc) {
-      const result = await checkService(svc)
-      socket.emit('serviceUpdate', result)
-    }
+    if (checking) return
+    checking = true
+    try {
+      const services = getAllServices()
+      const svc = services.find(s => s.id === serviceId)
+      if (svc) {
+        const result = await checkService(svc)
+        socket.emit('serviceUpdate', result)
+      }
+    } catch {}
+    checking = false
   })
 
   socket.on('disconnect', () => console.log(`[WS] Disconnected: ${socket.id}`))
 })
 
-const interval = parseInt(process.env.CHECK_INTERVAL) || 5000
+const interval = Math.max(parseInt(process.env.CHECK_INTERVAL) || 5000, 1000)
 const broadcastTimer = setInterval(broadcastAll, interval)
 broadcastAll()
 
@@ -325,6 +376,7 @@ process.on('uncaughtException', (err) => {
 })
 process.on('unhandledRejection', (reason) => {
   console.error(`[FATAL] Unhandled rejection: ${reason}`)
+  if (isProduction) shutdown('unhandledRejection')
 })
 
 const PORT = process.env.PORT || 4321

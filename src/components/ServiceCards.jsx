@@ -8,7 +8,7 @@ function HeartbeatBar({ data, dark }) {
   return (
     <div className="flex gap-[2px] items-end h-6">
       {data.map((v, i) => (
-        <div key={i} className={clsx('w-[3px] rounded-full transition-all duration-500', v === 1 ? (dark ? 'bg-[#4ade80]/70' : 'bg-emerald-400') : (dark ? 'bg-[#f87171]/70' : 'bg-red-400'))} style={{ height: v === 1 ? `${50 + Math.random() * 50}%` : '100%' }} />
+        <div key={i} className={clsx('w-[3px] rounded-full transition-all duration-500', v === 1 ? (dark ? 'bg-[#4ade80]/70' : 'bg-emerald-400') : (dark ? 'bg-[#f87171]/70' : 'bg-red-400'))} style={{ height: v === 1 ? `${50 + (i * 7) % 50}%` : '100%' }} />
       ))}
     </div>
   )
@@ -37,7 +37,7 @@ function StatusDot({ status }) {
   )
 }
 
-export default memo(function ServiceCards({ services = [], onServiceClick, onContainerClick }) {
+export default memo(function ServiceCards({ services = [], onServiceClick }) {
   const { dark } = useTheme()
   const [hovered, setHovered] = useState(null)
   const healthy = services.filter(s => s.status === 'healthy').length

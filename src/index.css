@@ -114,6 +114,16 @@ input:focus {
   outline: none;
 }
 
+input:focus-visible {
+  outline: 2px solid #6c8cff;
+  outline-offset: 2px;
+}
+
+button:focus-visible {
+  outline: 2px solid #6c8cff;
+  outline-offset: 2px;
+}
+
 ::selection {
   background: rgba(108, 140, 255, 0.3);
   color: white;

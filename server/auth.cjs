@@ -30,9 +30,9 @@ function timingSafeEqual(a, b) {
 
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization
-  if (!authHeader) return res.status(401).json({ error: 'No authorization header' })
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'Invalid authorization header' })
 
-  const token = authHeader.replace('Bearer ', '')
+  const token = authHeader.slice(7)
   if (!token || token.length > 2048) return res.status(401).json({ error: 'Invalid token' })
 
   const decoded = verifyToken(token)
@@ -44,9 +44,9 @@ function authMiddleware(req, res, next) {
 
 function optionalAuth(req, res, next) {
   const authHeader = req.headers.authorization
-  if (!authHeader) return next()
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return next()
 
-  const token = authHeader.replace('Bearer ', '')
+  const token = authHeader.slice(7)
   const decoded = verifyToken(token)
   if (decoded) req.user = decoded
   next()

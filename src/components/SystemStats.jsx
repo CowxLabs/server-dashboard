@@ -104,11 +104,11 @@ export default memo(function SystemStats({ stats = {}, systemInfo = {} }) {
   }, [stats.cpu])
 
   const cpu = stats.cpu ?? 0
-  const mem = stats.memory ?? { total: 0, used: 0, percent: 0 }
-  const disk = stats.disk ?? { total: 0, used: 0, percent: 0 }
-  const net = stats.network ?? { rxSpeed: 0, txSpeed: 0 }
-  const temp = stats.temperature ?? '--'
-  const loadAvg = stats.loadAverage ?? [0, 0, 0]
+  const mem = stats.memory || { total: 0, used: 0, percent: 0 }
+  const disk = stats.disk || { total: 0, used: 0, percent: 0 }
+  const net = stats.network || { rxSpeed: 0, txSpeed: 0 }
+  const temp = stats.temperature ?? null
+  const loadAvg = stats.loadAverage || [0, 0, 0]
 
   return (
     <div>
@@ -130,7 +130,7 @@ export default memo(function SystemStats({ stats = {}, systemInfo = {} }) {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <InfoPill icon={Thermometer} label="Temperature" value={temp !== null ? `${temp}°C` : 'N/A'} color="red" delay={200} />
+        <InfoPill icon={Thermometer} label="Temperature" value={temp != null ? `${temp}°C` : 'N/A'} color="red" delay={200} />
         <InfoPill icon={Clock} label="Uptime" value={formatUptime(systemInfo.uptime)} color="cyan" delay={250} />
         <InfoPill icon={Globe} label="Hostname" value={systemInfo.hostname || '--'} color="purple" delay={300} />
         <InfoPill icon={Activity} label="Load Avg" value={loadAvg.map(l => l.toFixed(2)).join('  ')} color="green" delay={350} />

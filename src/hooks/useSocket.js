@@ -12,6 +12,8 @@ export function useSocket() {
   const [containers, setContainers] = useState([])
   const [systemInfo, setSystemInfo] = useState({})
   const [alerts, setAlerts] = useState([])
+  const wasConnected = useRef(false)
+  const reconnectTimer = useRef(null)
 
   useEffect(() => {
     const token = localStorage.getItem('dashboard_token')
@@ -28,9 +30,13 @@ export function useSocket() {
     socketRef.current = socket
 
     socket.on('connect', () => {
-      if (connected === false && socketRef.current?.recovered === false) setReconnected(true)
+      if (wasConnected.current) {
+        setReconnected(true)
+        clearTimeout(reconnectTimer.current)
+        reconnectTimer.current = setTimeout(() => setReconnected(false), 3000)
+      }
+      wasConnected.current = true
       setConnected(true)
-      setTimeout(() => setReconnected(false), 3000)
     })
     socket.on('disconnect', () => setConnected(false))
     socket.on('stats', setStats)
@@ -39,7 +45,12 @@ export function useSocket() {
     socket.on('systemInfo', setSystemInfo)
     socket.on('alerts', setAlerts)
 
-    return () => { socket.disconnect(); socketRef.current = null }
+    return () => {
+      clearTimeout(reconnectTimer.current)
+      socket.disconnect()
+      socketRef.current = null
+      wasConnected.current = false
+    }
   }, [localStorage.getItem('dashboard_token')])
 
   const checkService = useCallback((serviceId) => {

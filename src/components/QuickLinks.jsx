@@ -3,7 +3,7 @@ import clsx from 'clsx'
 import { useTheme } from '../contexts/ThemeContext'
 import { ExternalLink, Star, Link2 } from 'lucide-react'
 
-export default memo(function QuickLinks({ links }) {
+export default memo(function QuickLinks({ links = [] }) {
   const { dark } = useTheme()
   const [favorites, setFavorites] = useState(['Proxmox', 'Grafana', 'Portainer'])
   const [filter, setFilter] = useState('All')

@@ -45,9 +45,9 @@ export default memo(function ServiceUptimeChart({ service, onClose }) {
 
   const totalChecks = data.length
   const healthyChecks = data.filter(d => d.status === 1).length
-  const uptime = totalChecks > 0 ? ((healthyChecks / totalChecks) * 100).toFixed(2) : '--'
-  const avgLatency = totalChecks > 0 ? Math.round(data.reduce((a, b) => a + b.latency, 0) / totalChecks) : '--'
-  const maxLatency = totalChecks > 0 ? Math.max(...data.map(d => d.latency)) : '--'
+  const uptime = totalChecks > 0 ? ((healthyChecks / totalChecks) * 100).toFixed(2) : '0.00'
+  const avgLatency = totalChecks > 0 ? Math.round(data.reduce((a, b) => a + b.latency, 0) / totalChecks) : 0
+  const maxLatency = totalChecks > 0 ? Math.max(...data.map(d => d.latency)) : 0
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={onClose}>
@@ -109,7 +109,7 @@ export default memo(function ServiceUptimeChart({ service, onClose }) {
                       <XAxis dataKey="time" tick={{ fontSize: 9, fill: dark ? '#5a6180' : '#94a3b8' }} axisLine={false} tickLine={false} interval={Math.floor(data.length / 8)} />
                       <YAxis tick={{ fontSize: 10, fill: dark ? '#5a6180' : '#94a3b8' }} axisLine={false} tickLine={false} />
                       <Tooltip content={<ChartTooltip dark={dark} />} />
-                      <ReferenceLine y={parseInt(avgLatency) || 0} stroke={dark ? '#5a6180' : '#94a3b8'} strokeDasharray="3 3" />
+                      <ReferenceLine y={avgLatency} stroke={dark ? '#5a6180' : '#94a3b8'} strokeDasharray="3 3" />
                       <Area type="monotone" dataKey="latency" stroke="#6c8cff" strokeWidth={2} fill="url(#latG)" name="Latency (ms)" />
                     </AreaChart>
                   </ResponsiveContainer>

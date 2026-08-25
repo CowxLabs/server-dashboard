@@ -81,8 +81,10 @@ function getNetworkInfo() {
 function getTemperature() {
   try {
     if (process.platform === 'linux') {
-      const raw = execSync('cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 0', { encoding: 'utf8', timeout: 3000 })
-      return Math.round(parseInt(raw.trim()) / 100)
+      const raw = execSync('cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null', { encoding: 'utf8', timeout: 3000 })
+      const val = parseInt(raw.trim())
+      if (isNaN(val)) return null
+      return Math.round(val / 100)
     }
   } catch {}
   return null

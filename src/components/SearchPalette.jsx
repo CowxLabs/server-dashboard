@@ -16,13 +16,14 @@ export default function SearchPalette({ onNavigate, onClose, onOpenServiceManage
 
   useEffect(() => {
     if (!query.trim()) { setResults({ services: [], quickLinks: [] }); return }
+    const controller = new AbortController()
     const timer = setTimeout(() => {
-      fetch(`/api/search?q=${encodeURIComponent(query)}`, { headers: { Authorization: `Bearer ${token}` } })
+      fetch(`/api/search?q=${encodeURIComponent(query)}`, { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal })
         .then(r => r.json())
         .then(setResults)
         .catch(() => {})
     }, 200)
-    return () => clearTimeout(timer)
+    return () => { clearTimeout(timer); controller.abort() }
   }, [query, token])
 
   useEffect(() => { setSelectedIndex(0) }, [results])

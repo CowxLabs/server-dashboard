@@ -79,8 +79,9 @@ async function getContainers() {
     }
     return results
   } catch (err) {
-    if (err.message?.includes('ENOENT')) {
+    if (err.code === 'ENOENT' || err.code === 'ECONNREFUSED' || err.code === 'EACCES') {
       docker = null
+      lastAttempt = 0
     }
     return []
   }

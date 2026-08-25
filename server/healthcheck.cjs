@@ -81,7 +81,7 @@ function checkHttp(url, timeout) {
     const client = url.startsWith('https') ? https : http
     const req = client.get(url, { timeout }, (res) => {
       res.resume()
-      resolve({ up: res.statusCode < 500, responseMs: Date.now() - start, statusCode: res.statusCode })
+      resolve({ up: res.statusCode < 400, responseMs: Date.now() - start, statusCode: res.statusCode })
     })
     req.on('error', () => resolve({ up: false, responseMs: Date.now() - start, error: true }))
     req.on('timeout', () => { req.destroy(); resolve({ up: false, responseMs: timeout, error: true }) })
@@ -117,7 +117,8 @@ const getUptime = db.prepare(`
 let lastStatuses = {}
 
 async function checkService(service) {
-  const result = service.protocol === 'http'
+  const protocol = service.protocol || 'http'
+  const result = protocol === 'http' || protocol === 'https'
     ? await checkHttp(service.url, service.timeout)
     : await checkTcp(service.url, service.timeout)
 
@@ -269,12 +270,17 @@ async function discoverDockerServices() {
 
 async function checkAllServices() {
   await discoverDockerServices()
-  const results = await Promise.all(services.map(s => checkService(s)))
+  const results = await Promise.allSettled(services.map(s => checkService(s)))
   const uptimeStats = getUptimeStats()
-  return results.map(r => ({
-    ...r,
-    uptime: uptimeStats[r.id]?.uptime || (r.status === 'healthy' ? 100 : 0),
-  }))
+  return results.map((r, i) => {
+    if (r.status === 'fulfilled') {
+      return { ...r.value, uptime: uptimeStats[r.value.id]?.uptime || (r.value.status === 'healthy' ? 100 : 0) }
+    }
+    return {
+      ...services[i], status: 'unknown', responseTime: 0, lastChecked: 'error',
+      heartbeat: [], latencyHistory: [], uptime: 0,
+    }
+  })
 }
 
 module.exports = { checkAllServices, checkService, getAllServices, getUptimeStats, reloadServices, addService, updateService, removeService }
