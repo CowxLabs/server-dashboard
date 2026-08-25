@@ -9,7 +9,7 @@ const severityMeta = {
   info: { icon: Info, color: 'text-blue-400', bg: 'bg-blue-500/15' },
 }
 
-function Topbar({ onOpenCommandPalette, onToggleMobile, onLogout, alerts = [] }) {
+function Topbar({ onOpenCommandPalette, onToggleMobile, onLogout, alerts = [], onOpenSearch }) {
   const { dark } = useTheme()
   const [time, setTime] = useState(new Date())
   const [showNotifications, setShowNotifications] = useState(false)
@@ -47,7 +47,7 @@ function Topbar({ onOpenCommandPalette, onToggleMobile, onLogout, alerts = [] })
         </button>
 
         <button
-          onClick={onOpenCommandPalette}
+          onClick={onOpenSearch || onOpenCommandPalette}
           className={clsx(
             'flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all duration-200',
             dark

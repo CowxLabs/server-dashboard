@@ -21,7 +21,7 @@ function formatUptime(sec) {
   return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
 
-export default memo(function ContainerList({ containers = [] }) {
+export default memo(function ContainerList({ containers = [], onContainerClick }) {
   const { dark } = useTheme()
   const [sortKey, setSortKey] = useState('name')
   const [sortDir, setSortDir] = useState('asc')
@@ -75,7 +75,7 @@ export default memo(function ContainerList({ containers = [] }) {
           </thead>
           <tbody>
             {sorted.map((c) => (
-              <tr key={c.id || c.name} className={clsx('border-t transition-colors', dark ? 'border-[#252837]/50 hover:bg-white/[0.02]' : 'border-gray-100 hover:bg-gray-50')}>
+              <tr key={c.id || c.name} onClick={() => onContainerClick?.(c)} className={clsx('border-t transition-colors cursor-pointer', dark ? 'border-[#252837]/50 hover:bg-white/[0.02]' : 'border-gray-100 hover:bg-gray-50')}>
                 <td className="px-4 py-3"><div className="flex items-center gap-2.5"><div className={clsx('w-2 h-2 rounded-full', c.status === 'running' ? 'bg-[#4ade80]' : 'bg-[#f87171]')} /><span className={clsx('font-semibold text-sm', dark ? 'text-[#e0e6ff]' : 'text-gray-900')}>{c.name}</span></div></td>
                 <td className={clsx('px-4 py-3 font-mono text-xs hidden md:table-cell', dark ? 'text-[#5a6180]' : 'text-gray-400')}>{c.image}</td>
                 <td className="px-4 py-3"><span className={clsx('text-[11px] px-2 py-0.5 rounded-full font-semibold capitalize', c.status === 'running' ? 'bg-[#4ade80]/12 text-[#4ade80]' : 'bg-[#f87171]/12 text-[#f87171]')}>{c.status}</span></td>

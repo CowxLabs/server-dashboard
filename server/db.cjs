@@ -35,10 +35,23 @@ db.exec(`
     recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
+  CREATE TABLE IF NOT EXISTS container_stats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    container_id TEXT NOT NULL,
+    container_name TEXT NOT NULL,
+    cpu REAL,
+    memory INTEGER,
+    network_rx INTEGER,
+    network_tx INTEGER,
+    recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE INDEX IF NOT EXISTS idx_uptime_service ON uptime_history(service_id);
   CREATE INDEX IF NOT EXISTS idx_uptime_time ON uptime_history(checked_at);
   CREATE INDEX IF NOT EXISTS idx_alerts_time ON alerts(created_at);
   CREATE INDEX IF NOT EXISTS idx_stats_time ON stats_history(recorded_at);
+  CREATE INDEX IF NOT EXISTS idx_container_stats_name ON container_stats(container_name);
+  CREATE INDEX IF NOT EXISTS idx_container_stats_time ON container_stats(recorded_at);
 `)
 
 const CLEANUP_OLDER_THAN = '7 days'

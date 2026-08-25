@@ -18,7 +18,12 @@ const defaults = {
     statusOverview: true,
   },
   services: [],
-  quickLinks: [],
+  quickLinks: [
+    { name: 'Docker', url: 'http://localhost:9000', icon: '\u{1F4E6}', category: 'Infrastructure' },
+    { name: 'Portainer', url: 'http://localhost:9000', icon: '\u{1F4E6}', category: 'Infrastructure' },
+    { name: 'Grafana', url: 'http://localhost:3000', icon: '\u{1F4CA}', category: 'Monitoring' },
+    { name: 'Prometheus', url: 'http://localhost:9090', icon: '\u{1F525}', category: 'Monitoring' },
+  ],
 }
 
 function loadConfig() {

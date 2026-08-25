@@ -113,6 +113,49 @@ app.get('/api/storage', apiLimiter, authMiddleware, (req, res) => {
     memory: { total: Math.round(memTotal * 10) / 10, used: Math.round(memUsed * 10) / 10, free: Math.round(memFree * 10) / 10, percent: Math.round(memUsed / memTotal * 1000) / 10 },
   })
 })
+app.get('/api/search', apiLimiter, authMiddleware, (req, res) => {
+  const q = (req.query.q || '').toLowerCase().trim()
+  if (!q) return res.json({ services: [], containers: [], quickLinks: [] })
+
+  const svcResults = getAllServices().filter(s => s.name.toLowerCase().includes(q) || s.type.toLowerCase().includes(q) || s.id.toLowerCase().includes(q)).slice(0, 5)
+  const qlResults = (appConfig.quickLinks || []).filter(l => l.name.toLowerCase().includes(q) || l.category.toLowerCase().includes(q)).slice(0, 5)
+
+  res.json({ services: svcResults, quickLinks: qlResults })
+})
+app.get('/api/quicklinks', apiLimiter, authMiddleware, (req, res) => {
+  res.json(appConfig.quickLinks || [])
+})
+app.get('/api/container-stats/:name', apiLimiter, authMiddleware, (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 60, 720)
+  const name = req.params.name.replace(/[^a-zA-Z0-9_-]/g, '')
+  const rows = db.prepare('SELECT * FROM container_stats WHERE container_name = ? ORDER BY recorded_at DESC LIMIT ?').all(name, limit)
+  res.json(rows)
+})
+app.get('/api/system/full', apiLimiter, authMiddleware, (req, res) => {
+  const { execSync } = require('child_process')
+  const info = { ...systemInfo, interfaces: {}, storage: [] }
+  try {
+    const ifaces = os.networkInterfaces()
+    for (const name in ifaces) {
+      info.interfaces[name] = ifaces[name].filter(i => !i.internal && i.family === 'IPv4').map(i => ({ address: i.address, netmask: i.netmask, mac: i.mac }))
+    }
+  } catch {}
+  try {
+    if (process.platform !== 'win32') {
+      const raw = execSync('cat /proc/cpuinfo | head -20 2>/dev/null', { encoding: 'utf8', timeout: 2000 })
+      const model = raw.match(/model name\s*:\s*(.+)/i)
+      const mhz = raw.match(/cpu MHz\s*:\s*(.+)/i)
+      if (model) info.cpuModel = model[1].trim()
+      if (mhz) info.cpuFrequency = Math.round(parseFloat(mhz[1])) + ' MHz'
+      try {
+        const memRaw = execSync('free -b | grep Mem', { encoding: 'utf8', timeout: 2000 })
+        const parts = memRaw.trim().split(/\s+/)
+        info.memoryDetail = { total: parseInt(parts[1]), used: parseInt(parts[2]), free: parseInt(parts[3]), shared: parseInt(parts[4]), buffers: parseInt(parts[5]), available: parseInt(parts[6]) }
+      } catch {}
+    }
+  } catch {}
+  res.json(info)
+})
 app.get('/api/config', apiLimiter, authMiddleware, (req, res) => res.json(appConfig))
 
 app.post('/api/config', apiLimiter, writeLimiter, authMiddleware, (req, res) => {
@@ -210,9 +253,20 @@ async function broadcastAll() {
       stats.cpu, stats.memory.percent, stats.disk.percent, stats.network.rxSpeed, stats.network.txSpeed
     )
 
+    for (const c of containers) {
+      if (c.status === 'running') {
+        try {
+          db.prepare('INSERT INTO container_stats (container_id, container_name, cpu, memory, network_rx, network_tx) VALUES (?, ?, ?, ?, ?, ?)').run(
+            c.id, c.name, c.cpu || 0, c.memory || 0, c.networkRx || 0, c.networkTx || 0
+          )
+        } catch {}
+      }
+    }
+
     io.emit('stats', stats)
     io.emit('services', services)
     io.emit('containers', containers)
+    io.emit('alerts', db.prepare('SELECT * FROM alerts ORDER BY created_at DESC LIMIT 20').all())
 
     lastStats = stats
     lastServices = services

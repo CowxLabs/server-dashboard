@@ -18,7 +18,7 @@ const navItems = [
   { id: 'alerts', label: 'Alerts', icon: Bell },
 ]
 
-function Sidebar({ activeSection, onNavigate, onOpenCommandPalette, onOpenServiceManager }) {
+function Sidebar({ activeSection, onNavigate, onOpenCommandPalette, onOpenServiceManager, onOpenSystemInfo }) {
   const [collapsed, setCollapsed] = useState(false)
   const { dark, toggleTheme } = useTheme()
 
@@ -127,6 +127,18 @@ function Sidebar({ activeSection, onNavigate, onOpenCommandPalette, onOpenServic
         >
           <Settings2 size={18} />
           {!collapsed && <span>Manage Services</span>}
+        </button>
+        <button
+          onClick={onOpenSystemInfo}
+          className={clsx(
+            'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+            dark
+              ? 'text-[#22d3ee] hover:bg-[#22d3ee]/10'
+              : 'text-cyan-500 hover:bg-cyan-50'
+          )}
+        >
+          <Server size={18} />
+          {!collapsed && <span>System Info</span>}
         </button>
         <button
           onClick={toggleTheme}
