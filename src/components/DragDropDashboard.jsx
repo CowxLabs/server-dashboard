@@ -20,7 +20,7 @@ function SortableWidget({ id, children }) {
   return (
     <div ref={setNodeRef} style={style} className={clsx('relative group', isDragging && 'scale-[1.01]')}>
       <button {...attributes} {...listeners} className={clsx(
-        'absolute top-2 left-2 z-10 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing',
+        'absolute top-2 right-2 z-10 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing',
         dark ? 'bg-[#252837] text-[#5a6180] hover:text-[#a0a8c8]' : 'bg-gray-100 text-gray-400 hover:text-gray-600'
       )} aria-label="Drag to reorder">
         <GripVertical size={14} />

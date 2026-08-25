@@ -95,33 +95,35 @@ app.get('/api/storage', apiLimiter, authMiddleware, (req, res) => {
   try {
     if (process.platform !== 'win32') {
       let raw = ''
-      try { raw = execSync('df -B1 / 2>/dev/null | tail -1', { encoding: 'utf8', timeout: 3000 }) } catch {}
+      try { raw = execSync('df -h 2>/dev/null', { encoding: 'utf8', timeout: 3000 }) } catch {}
       if (raw) {
-        const p = raw.trim().split(/\s+/)
-        if (p.length >= 4) {
-          const total = Math.round((parseInt(p[1]) || 0) / 1073741824 * 10) / 10
-          const used = Math.round((parseInt(p[2]) || 0) / 1073741824 * 10) / 10
-          const free = Math.round((parseInt(p[3]) || 0) / 1073741824 * 10) / 10
-          disks.push({ device: p[0], mount: p[5] || '/', total, used, free, percent: total > 0 ? Math.round(used / total * 1000) / 10 : 0, type: 'local' })
-        }
-      }
-
-      try {
-        const raw2 = execSync('df -B1 --output=source,fstype,size,used,avail,pcent,target 2>/dev/null | grep "^/dev/"', { encoding: 'utf8', timeout: 3000 })
-        const lines = raw2.trim().split('\n')
+        const lines = raw.trim().split('\n').slice(1)
         for (const line of lines) {
           const parts = line.trim().split(/\s+/)
-          if (parts.length >= 7) {
-            const total = Math.round((parseInt(parts[2]) || 0) / 1073741824 * 10) / 10
-            const used = Math.round((parseInt(parts[3]) || 0) / 1073741824 * 10) / 10
-            const free = Math.round((parseInt(parts[4]) || 0) / 1073741824 * 10) / 10
-            const existing = disks.find(d => d.device === parts[0])
-            if (!existing && total > 0) {
-              disks.push({ device: parts[0], mount: parts[6], total, used, free, percent: parseFloat(parts[5]) || 0, type: parts[1] })
+          if (parts.length >= 6) {
+            const device = parts[0]
+            if (device === 'tmpfs' || device === 'udev' || device === 'devtmpfs' || device.startsWith('overlay') && parts.length < 7) continue
+            const total = parts[1] || '0'
+            const used = parts[2] || '0'
+            const free = parts[3] || '0'
+            const percent = parseInt(parts[4]) || 0
+            const mount = parts[5] || '/'
+            const existing = disks.find(d => d.mount === mount)
+            if (!existing) {
+              disks.push({ device, mount, total, used, free, percent, type: device.includes('overlay') ? 'overlay' : device.includes('sd') ? 'disk' : device.includes('nvme') ? 'nvme' : 'local' })
             }
           }
         }
-      } catch {}
+      }
+      if (disks.length === 0) {
+        try {
+          const raw2 = execSync('df -h / | tail -1', { encoding: 'utf8', timeout: 3000 })
+          const p = raw2.trim().split(/\s+/)
+          if (p.length >= 6) {
+            disks.push({ device: p[0], mount: p[5], total: p[1], used: p[2], free: p[3], percent: parseInt(p[4]) || 0, type: 'local' })
+          }
+        } catch {}
+      }
     }
   } catch {}
 

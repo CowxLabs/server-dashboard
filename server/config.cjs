@@ -31,7 +31,11 @@ function loadConfig() {
     if (fs.existsSync(configPath)) {
       const raw = fs.readFileSync(configPath, 'utf8')
       const custom = JSON.parse(raw)
-      return { ...defaults, ...custom, widgets: { ...defaults.widgets, ...custom.widgets } }
+      const merged = { ...defaults, ...custom, widgets: { ...defaults.widgets, ...custom.widgets } }
+      if (!merged.quickLinks || merged.quickLinks.length === 0) {
+        merged.quickLinks = defaults.quickLinks
+      }
+      return merged
     }
   } catch (err) {
     console.error('[Config] Failed to load config:', err.message)

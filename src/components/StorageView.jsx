@@ -1,4 +1,4 @@
-import { memo, useState, useEffect } from 'react'
+import { memo, useState, useEffect, useCallback } from 'react'
 import clsx from 'clsx'
 import { useTheme } from '../contexts/ThemeContext'
 import { HardDrive, MemoryStick, Database, RefreshCw } from 'lucide-react'
@@ -14,7 +14,7 @@ function StorageBar({ percent, color = 'blue' }) {
   }
   return (
     <div className={clsx('w-full h-3 rounded-full overflow-hidden', dark ? 'bg-[#252837]' : 'bg-gray-100')}>
-      <div className={clsx('h-full rounded-full bg-gradient-to-r transition-all duration-1000 ease-out', getColor(percent))} style={{ width: `${Math.min(percent, 100)}%` }} />
+      <div className={clsx('h-full rounded-full bg-gradient-to-r transition-all duration-1000 ease-out', getColor(percent))} style={{ width: `${Math.min(percent || 0, 100)}%` }} />
     </div>
   )
 }
@@ -25,16 +25,16 @@ export default memo(function StorageView() {
   const [loading, setLoading] = useState(true)
   const [token] = useState(() => localStorage.getItem('dashboard_token'))
 
-  const fetchData = () => {
+  const fetchData = useCallback(() => {
     setLoading(true)
     fetch('/api/storage', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(setData)
       .catch(() => {})
       .finally(() => setLoading(false))
-  }
+  }, [token])
 
-  useEffect(() => { fetchData() }, [token])
+  useEffect(() => { fetchData() }, [fetchData])
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -104,7 +104,7 @@ export default memo(function StorageView() {
 
             <div className="flex items-end justify-between mb-3">
               <span className={clsx('text-3xl font-bold', dark ? 'text-[#e0e6ff]' : 'text-gray-900')}>{disk.percent}%</span>
-              <span className={clsx('text-xs', dark ? 'text-[#5a6180]' : 'text-gray-400')}>{disk.used} / {disk.total} GB</span>
+              <span className={clsx('text-xs', dark ? 'text-[#5a6180]' : 'text-gray-400')}>{disk.used} / {disk.total}</span>
             </div>
 
             <StorageBar percent={disk.percent} />
@@ -112,15 +112,15 @@ export default memo(function StorageView() {
             <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t" style={{ borderColor: dark ? '#25283740' : '#f1f5f9' }}>
               <div className="text-center">
                 <p className={clsx('text-[10px] uppercase font-semibold', dark ? 'text-[#5a6180]' : 'text-gray-400')}>Total</p>
-                <p className={clsx('text-sm font-bold', dark ? 'text-[#e0e6ff]' : 'text-gray-900')}>{disk.total} GB</p>
+                <p className={clsx('text-sm font-bold', dark ? 'text-[#e0e6ff]' : 'text-gray-900')}>{disk.total}</p>
               </div>
               <div className="text-center">
                 <p className={clsx('text-[10px] uppercase font-semibold', dark ? 'text-[#5a6180]' : 'text-gray-400')}>Used</p>
-                <p className={clsx('text-sm font-bold text-[#fb923c]')}>{disk.used} GB</p>
+                <p className="text-sm font-bold text-[#fb923c]">{disk.used}</p>
               </div>
               <div className="text-center">
                 <p className={clsx('text-[10px] uppercase font-semibold', dark ? 'text-[#5a6180]' : 'text-gray-400')}>Free</p>
-                <p className={clsx('text-sm font-bold text-[#4ade80]')}>{disk.free} GB</p>
+                <p className="text-sm font-bold text-[#4ade80]">{disk.free}</p>
               </div>
             </div>
           </div>
