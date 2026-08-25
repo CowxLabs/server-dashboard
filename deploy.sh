@@ -45,9 +45,11 @@ if [ ! -f ".env" ]; then
     echo "[4/5] Creating .env from template..."
     cp .env.example .env
     JWT_SECRET=$(openssl rand -hex 32)
+    SERVER_HOSTNAME=$(hostname)
     sed -i "s|JWT_SECRET=.*|JWT_SECRET=$JWT_SECRET|" .env
-    echo "  .env created with random JWT_SECRET"
-    echo "  IMPORTANT: Edit .env to set ADMIN_PASSWORD"
+    sed -i "s|ADMIN_PASSWORD=.*|ADMIN_PASSWORD=792495|" .env
+    echo "HOSTNAME=$SERVER_HOSTNAME" >> .env
+    echo "  .env created with random JWT_SECRET and hostname=$SERVER_HOSTNAME"
 else
     echo "[4/5] .env exists"
 fi
