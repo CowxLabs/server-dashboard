@@ -1,0 +1,38 @@
+services:
+  server-dashboard:
+    build: .
+    container_name: server-dashboard
+    restart: unless-stopped
+    ports:
+      - "${PORT:-4321}:4321"
+    volumes:
+      - ./data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - NODE_ENV=production
+      - PORT=4321
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+      - CHECK_INTERVAL=${CHECK_INTERVAL:-5000}
+      - HEALTH_CHECK_TIMEOUT=${HEALTH_CHECK_TIMEOUT:-5000}
+      - DISCORD_WEBHOOK=${DISCORD_WEBHOOK:-}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+      - WEBHOOK_URL=${WEBHOOK_URL:-}
+      - CORS_ORIGIN=${CORS_ORIGIN:-}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4321/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

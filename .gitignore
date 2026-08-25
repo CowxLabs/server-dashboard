@@ -1,0 +1,14 @@
+node_modules/
+dist/
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.local
+.env.*.local
+dashboard.config.json
+logs/
+*.log
+.DS_Store
+.vscode/
+.idea/
