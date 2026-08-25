@@ -3,6 +3,7 @@ services:
     build: .
     container_name: server-dashboard
     restart: unless-stopped
+    user: "0:0"
     ports:
       - "${PORT:-4321}:4321"
     volumes:
