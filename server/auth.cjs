@@ -85,4 +85,4 @@ function sanitizeMiddleware(req, res, next) {
   next()
 }
 
-module.exports = { authMiddleware, optionalAuth, loginHandler, generateToken, sanitizeInput, sanitizeObject, sanitizeMiddleware }
+module.exports = { authMiddleware, optionalAuth, loginHandler, generateToken, verifyToken, sanitizeInput, sanitizeObject, sanitizeMiddleware }
