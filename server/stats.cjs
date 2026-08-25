@@ -94,8 +94,15 @@ function getLoadAverage() {
 }
 
 function getSystemInfo() {
+  let hostname = os.hostname()
+  try {
+    const hostHostname = fs.readFileSync('/etc/hostname', 'utf8').trim()
+    if (hostHostname) hostname = hostHostname
+  } catch {}
+  if (process.env.HOSTNAME) hostname = process.env.HOSTNAME
+
   return {
-    hostname: os.hostname(),
+    hostname,
     os: `${os.type()} ${os.release()}`,
     platform: os.platform(),
     arch: os.arch(),

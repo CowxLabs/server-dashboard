@@ -8,9 +8,11 @@ services:
     volumes:
       - ./data:/app/data
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/hostname:/etc/hostname:ro
     environment:
       - NODE_ENV=production
       - PORT=4321
+      - HOSTNAME=${HOSTNAME:-}
       - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
       - CHECK_INTERVAL=${CHECK_INTERVAL:-5000}
