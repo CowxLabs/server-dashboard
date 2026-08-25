@@ -24,6 +24,8 @@ const StatusOverview = lazy(() => import('./components/StatusOverview'))
 const StorageView = lazy(() => import('./components/StorageView'))
 const SystemInfoPanel = lazy(() => import('./components/SystemInfoPanel'))
 const ContainerStatsChart = lazy(() => import('./components/ContainerStatsChart'))
+const ServiceUptimeChart = lazy(() => import('./components/ServiceUptimeChart'))
+const DragDropDashboard = lazy(() => import('./components/DragDropDashboard'))
 
 function Placeholder({ title }) {
   const { dark } = useTheme()
@@ -45,6 +47,8 @@ export default function App() {
   const [svcManagerOpen, setSvcManagerOpen] = useState(false)
   const [sysInfoOpen, setSysInfoOpen] = useState(false)
   const [containerChart, setContainerChart] = useState(null)
+  const [serviceChart, setServiceChart] = useState(null)
+  const [widgetOrder, setWidgetOrder] = useState(['stats', 'services_containers', 'overview_network_alerts', 'quicklinks'])
   const [quickLinks, setQuickLinks] = useState([])
   const [token, setToken] = useState(() => localStorage.getItem('dashboard_token'))
 
@@ -108,23 +112,34 @@ export default function App() {
             <div className="max-w-[1800px] mx-auto space-y-6">
               <Suspense fallback={<div className="h-40 rounded-2xl animate-pulse" style={{ background: dark ? '#161822' : '#f1f5f9' }} />}>
                 {activeSection === 'dashboard' && (
-                  <>
-                    <SystemStats stats={stats} systemInfo={systemInfo} />
-                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                      <div className="xl:col-span-2 space-y-6">
-                        <ServiceCards services={services} onContainerClick={setContainerChart} />
-                        <ContainerList containers={containers} onContainerClick={setContainerChart} />
-                      </div>
-                      <div className="space-y-6">
-                        <StatusOverview services={services} />
-                        <NetworkChart stats={stats} />
-                        <AlertsFeed alerts={alerts} />
-                      </div>
-                    </div>
-                    <QuickLinks links={quickLinks} />
-                  </>
+                  <DragDropDashboard widgets={widgetOrder} onReorder={setWidgetOrder}>
+                    {(id) => {
+                      if (id === 'stats') return <SystemStats key="stats" stats={stats} systemInfo={systemInfo} />
+                      if (id === 'services_containers') return (
+                        <div key="svc" className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                          <div className="xl:col-span-2 space-y-6">
+                            <ServiceCards services={services} onServiceClick={setServiceChart} />
+                            <ContainerList containers={containers} onContainerClick={setContainerChart} />
+                          </div>
+                          <div className="space-y-6">
+                            <StatusOverview services={services} />
+                            <NetworkChart stats={stats} />
+                            <AlertsFeed alerts={alerts} />
+                          </div>
+                        </div>
+                      )
+                      if (id === 'overview_network_alerts') return (
+                        <div key="net" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <NetworkChart stats={stats} />
+                          <AlertsFeed alerts={alerts} />
+                        </div>
+                      )
+                      if (id === 'quicklinks') return <QuickLinks key="ql" links={quickLinks} />
+                      return null
+                    }}
+                  </DragDropDashboard>
                 )}
-                {activeSection === 'services' && <ServiceCards services={services} />}
+                {activeSection === 'services' && <ServiceCards services={services} onServiceClick={setServiceChart} />}
                 {activeSection === 'containers' && <ContainerList containers={containers} onContainerClick={setContainerChart} />}
                 {activeSection === 'network' && <NetworkChart stats={stats} />}
                 {activeSection === 'links' && <QuickLinks links={quickLinks} />}
@@ -147,6 +162,7 @@ export default function App() {
         {svcManagerOpen && <ServiceManager onClose={() => setSvcManagerOpen(false)} />}
         {sysInfoOpen && <SystemInfoPanel onClose={() => setSysInfoOpen(false)} />}
         {containerChart && <ContainerStatsChart container={containerChart} onClose={() => setContainerChart(null)} />}
+        {serviceChart && <ServiceUptimeChart service={serviceChart} onClose={() => setServiceChart(null)} />}
       </div>
     </ErrorBoundary>
   )

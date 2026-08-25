@@ -37,7 +37,7 @@ function StatusDot({ status }) {
   )
 }
 
-export default memo(function ServiceCards({ services = [] }) {
+export default memo(function ServiceCards({ services = [], onServiceClick, onContainerClick }) {
   const { dark } = useTheme()
   const [hovered, setHovered] = useState(null)
   const healthy = services.filter(s => s.status === 'healthy').length
@@ -60,6 +60,7 @@ export default memo(function ServiceCards({ services = [] }) {
         {services.map((svc, i) => (
           <a key={svc.id} href={svc.url} target="_blank" rel="noopener noreferrer"
             onMouseEnter={() => setHovered(svc.id)} onMouseLeave={() => setHovered(null)}
+            onClick={(e) => { e.preventDefault(); onServiceClick?.(svc) }}
             className={clsx('group rounded-2xl border p-4 transition-all duration-300 cursor-pointer animate-fade-in hover-lift block', dark ? 'bg-[#161822]/80 border-[#252837] hover:border-[#363a4f] hover:bg-[#1c1e2e]/80' : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-lg', hovered === svc.id && 'scale-[1.01]')} style={{ animationDelay: `${i * 30}ms` }}>
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-3 min-w-0">
