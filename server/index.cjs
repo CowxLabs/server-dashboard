@@ -85,31 +85,25 @@ app.get('/api/storage', apiLimiter, authMiddleware, (req, res) => {
       try { raw = execSync('df -h 2>/dev/null', { encoding: 'utf8', timeout: 3000 }) } catch {}
       if (raw) {
         const lines = raw.trim().split('\n').slice(1)
+        const seenMounts = new Set()
         for (const line of lines) {
           const parts = line.trim().split(/\s+/)
-          if (parts.length >= 6) {
-            const device = parts[0]
-            if (device === 'tmpfs' || device === 'udev' || device === 'devtmpfs' || device.startsWith('overlay') && parts.length < 7) continue
-            const total = parts[1] || '0'
-            const used = parts[2] || '0'
-            const free = parts[3] || '0'
-            const percent = parseInt(parts[4]) || 0
-            const mount = parts[5] || '/'
-            const existing = disks.find(d => d.mount === mount)
-            if (!existing) {
-              disks.push({ device, mount, total, used, free, percent, type: device.includes('overlay') ? 'overlay' : device.includes('sd') ? 'disk' : device.includes('nvme') ? 'nvme' : 'local' })
-            }
-          }
+          if (parts.length < 6) continue
+          const device = parts[0]
+          const mount = parts[5]
+          if (seenMounts.has(mount)) continue
+          if (device === 'tmpfs' || device === 'udev' || device === 'devtmpfs' || device === 'none') continue
+          seenMounts.add(mount)
+          disks.push({
+            device,
+            mount,
+            total: parts[1],
+            used: parts[2],
+            free: parts[3],
+            percent: parseInt(parts[4]) || 0,
+            type: device.includes('overlay') ? 'Overlay' : device.includes('nvme') ? 'NVMe' : device.startsWith('/dev/sd') ? 'SCSI' : device.startsWith('/dev/vd') ? 'Virtual' : device.startsWith('/dev/md') ? 'RAID' : 'Block',
+          })
         }
-      }
-      if (disks.length === 0) {
-        try {
-          const raw2 = execSync('df -h / | tail -1', { encoding: 'utf8', timeout: 3000 })
-          const p = raw2.trim().split(/\s+/)
-          if (p.length >= 6) {
-            disks.push({ device: p[0], mount: p[5], total: p[1], used: p[2], free: p[3], percent: parseInt(p[4]) || 0, type: 'local' })
-          }
-        } catch {}
       }
     }
   } catch {}
