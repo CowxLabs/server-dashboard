@@ -24,20 +24,18 @@ const { loginLimiter, apiLimiter, writeLimiter, checkBruteForce, resetBruteForce
 const isProduction = process.env.NODE_ENV === 'production'
 
 if (isProduction && (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'change-me-in-production')) {
-  console.error('[FATAL] JWT_SECRET must be set to a strong random value in production')
-  process.exit(1)
+  console.error('[WARN] JWT_SECRET should be set to a strong random value in production')
 }
 if (isProduction && (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD === 'admin')) {
-  console.error('[FATAL] ADMIN_PASSWORD must be set to a strong value in production')
-  process.exit(1)
+  console.error('[WARN] ADMIN_PASSWORD should be set to a strong value in production')
 }
 
 const app = express()
 const server = http.createServer(app)
 
-const corsOrigin = process.env.CORS_ORIGIN
+const corsOrigin = process.env.CORS_ORIGIN || '*'
 const io = new Server(server, {
-  cors: { origin: corsOrigin || !isProduction, methods: ['GET', 'POST'] },
+  cors: { origin: corsOrigin === '*' ? true : corsOrigin, methods: ['GET', 'POST'] },
   transports: ['polling', 'websocket'],
   allowUpgrades: true,
 })
@@ -53,7 +51,7 @@ io.use((socket, next) => {
 
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }))
 app.use(compression())
-app.use(cors({ origin: corsOrigin || !isProduction, credentials: !!corsOrigin }))
+app.use(cors({ origin: corsOrigin === '*' ? true : corsOrigin, credentials: corsOrigin !== '*' }))
 app.use(express.json({ limit: '1mb' }))
 app.use(sanitizeMiddleware)
 
