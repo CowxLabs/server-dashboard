@@ -18,7 +18,11 @@ const { loginLimiter, apiLimiter, writeLimiter, checkBruteForce, resetBruteForce
 
 const app = express()
 const server = http.createServer(app)
-const io = new Server(server, { cors: { origin: process.env.CORS_ORIGIN || '*' } })
+const io = new Server(server, {
+  cors: { origin: process.env.CORS_ORIGIN || true, methods: ['GET', 'POST'] },
+  transports: ['polling', 'websocket'],
+  allowUpgrades: true,
+})
 const isProduction = process.env.NODE_ENV === 'production'
 
 app.use(helmet({

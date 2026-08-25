@@ -13,11 +13,16 @@ export function useSocket() {
 
   useEffect(() => {
     const token = localStorage.getItem('dashboard_token')
-    if (!token) return
+    if (!token) {
+      setConnected(false)
+      return
+    }
+
+    if (socketRef.current?.connected) return
 
     const socket = io(SOCKET_URL, {
       auth: { token },
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 50,
@@ -31,8 +36,11 @@ export function useSocket() {
     socket.on('containers', setContainers)
     socket.on('systemInfo', setSystemInfo)
 
-    return () => { socket.disconnect() }
-  }, [])
+    return () => {
+      socket.disconnect()
+      socketRef.current = null
+    }
+  }, [localStorage.getItem('dashboard_token')])
 
   const checkService = useCallback((serviceId) => {
     socketRef.current?.emit('checkService', serviceId)
