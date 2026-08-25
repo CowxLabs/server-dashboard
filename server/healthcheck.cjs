@@ -9,7 +9,6 @@ const defaultServices = [
   { id: 'nginx', name: 'Nginx', icon: '\u{1F310}', type: 'Web Server', protocol: 'http', url: 'http://localhost:80', timeout: 5000 },
   { id: 'postgresql', name: 'PostgreSQL', icon: '\u{1F418}', type: 'Database', protocol: 'tcp', url: 'localhost:5432', timeout: 3000 },
   { id: 'redis', name: 'Redis', icon: '\u26A1', type: 'Cache', protocol: 'tcp', url: 'localhost:6379', timeout: 3000 },
-  { id: 'docker', name: 'Docker Engine', icon: '\u{1F433}', type: 'Container Runtime', protocol: 'tcp', url: 'localhost:2375', timeout: 3000 },
   { id: 'plex', name: 'Plex', icon: '\u{1F3AC}', type: 'Media Server', protocol: 'http', url: 'http://localhost:32400', timeout: 5000 },
   { id: 'portainer', name: 'Portainer', icon: '\u{1F4E6}', type: 'Container Management', protocol: 'http', url: 'http://localhost:9000', timeout: 5000 },
   { id: 'grafana', name: 'Grafana', icon: '\u{1F4CA}', type: 'Observability', protocol: 'http', url: 'http://localhost:3000', timeout: 5000 },
