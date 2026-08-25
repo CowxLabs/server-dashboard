@@ -7,7 +7,7 @@ const cors = require('cors')
 const helmet = require('helmet')
 const compression = require('compression')
 const path = require('path')
-const { exec } = require('child_process')
+const { exec, execSync } = require('child_process')
 const { promisify } = require('util')
 const os = require('os')
 
@@ -35,8 +35,8 @@ const server = http.createServer(app)
 
 const corsOrigin = process.env.CORS_ORIGIN || '*'
 const io = new Server(server, {
-  cors: { origin: '*', methods: ['GET', 'POST'] },
-  transports: ['polling', 'websocket'],
+  cors: { origin: corsOrigin === '*' ? true : corsOrigin.split(','), methods: ['GET', 'POST'] },
+  transports: ['websocket', 'polling'],
   allowUpgrades: true,
 })
 
@@ -51,7 +51,7 @@ io.use((socket, next) => {
 
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }))
 app.use(compression())
-app.use(cors({ origin: '*', credentials: false }))
+app.use(cors({ origin: corsOrigin === '*' ? true : corsOrigin.split(','), credentials: corsOrigin !== '*' }))
 app.use(express.json({ limit: '1mb' }))
 app.use(sanitizeMiddleware)
 
@@ -66,19 +66,8 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', uptime: Math.floor((Date.now() - startTime) / 1000), timestamp: new Date().toISOString() })
 })
 
-// Login with brute force protection
-app.post('/api/login', loginLimiter, (req, res, next) => {
-  const ip = req.ip || req.connection?.remoteAddress || 'unknown'
-  if (checkBruteForce(ip)) {
-    return res.status(429).json({ error: 'Account temporarily locked due to too many failed attempts' })
-  }
-  const originalSend = res.json.bind(res)
-  res.json = (data) => {
-    if (res.statusCode === 200) resetBruteForce(ip)
-    return originalSend(data)
-  }
-  next()
-}, loginHandler)
+// Login with rate limiting
+app.post('/api/login', loginLimiter, loginHandler)
 
 // Protected API routes
 app.get('/api/stats', apiLimiter, authMiddleware, (req, res) => res.json(collectStats()))

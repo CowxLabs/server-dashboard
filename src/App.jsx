@@ -52,7 +52,7 @@ export default function App() {
   const [quickLinks, setQuickLinks] = useState([])
   const [token, setToken] = useState(() => localStorage.getItem('dashboard_token'))
 
-  const { connected, reconnected, stats, services, containers, systemInfo, alerts } = useSocket()
+  const { connected, reconnected, stats, services, containers, systemInfo, alerts } = useSocket(token)
 
   useEffect(() => {
     if (reconnected) toast.success('Reconnected to server')

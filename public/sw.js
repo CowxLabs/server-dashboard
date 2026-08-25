@@ -1,12 +1,7 @@
-const CACHE_NAME = 'server-dashboard-v1'
-const PRECACHE = ['/', '/index.html']
+const CACHE_NAME = 'server-dashboard-v2'
+const NO_CACHE = ['/api/', '/socket.io/', '/health']
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE))
-  )
-  self.skipWaiting()
-})
+self.addEventListener('install', () => self.skipWaiting())
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -19,18 +14,16 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return
-  if (event.request.url.includes('/api/') || event.request.url.includes('/socket.io/')) return
+  if (NO_CACHE.some(p => event.request.url.includes(p))) return
+  if (event.request.url.includes('/socket.io/')) return
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetched = fetch(event.request).then((response) => {
-        if (response.ok) {
-          const clone = response.clone()
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
-        }
-        return response
-      }).catch(() => cached)
-      return cached || fetched
-    })
+    fetch(event.request).then((response) => {
+      if (response.ok) {
+        const clone = response.clone()
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
+      }
+      return response
+    }).catch(() => caches.match(event.request))
   )
 })

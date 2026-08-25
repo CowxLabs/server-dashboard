@@ -75,7 +75,7 @@ function ServiceForm({ initial, onSubmit, onCancel }) {
           <div className="flex items-center gap-2">
             <select className={clsx(inputCls, 'flex-1')} value={form.icon}
               onChange={e => setForm(f => ({ ...f, icon: e.target.value }))}>
-              {iconOptions.map(ic => <option key={ic} value={ic}>{ic} {ic}</option>)}
+              {iconOptions.map(ic =>               <option key={ic} value={ic}>{ic}</option>)}
             </select>
             <span className="text-2xl">{form.icon}</span>
           </div>

@@ -3,7 +3,7 @@ import { io } from 'socket.io-client'
 
 const SOCKET_URL = window.location.origin
 
-export function useSocket() {
+export function useSocket(token) {
   const socketRef = useRef(null)
   const [connected, setConnected] = useState(false)
   const [reconnected, setReconnected] = useState(false)
@@ -16,13 +16,12 @@ export function useSocket() {
   const reconnectTimer = useRef(null)
 
   useEffect(() => {
-    const token = localStorage.getItem('dashboard_token')
     if (!token) { setConnected(false); return }
     if (socketRef.current?.connected) return
 
     const socket = io(SOCKET_URL, {
       auth: { token },
-      transports: ['polling', 'websocket'],
+      transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 50,
@@ -39,6 +38,9 @@ export function useSocket() {
       setConnected(true)
     })
     socket.on('disconnect', () => setConnected(false))
+    socket.on('connect_error', (err) => {
+      console.error('[Socket] Connection error:', err.message)
+    })
     socket.on('stats', setStats)
     socket.on('services', setServices)
     socket.on('containers', setContainers)
@@ -51,7 +53,7 @@ export function useSocket() {
       socketRef.current = null
       wasConnected.current = false
     }
-  }, [localStorage.getItem('dashboard_token')])
+  }, [token])
 
   const checkService = useCallback((serviceId) => {
     socketRef.current?.emit('checkService', serviceId)

@@ -156,7 +156,7 @@ function Topbar({ onOpenCommandPalette, onToggleMobile, onLogout, alerts = [], o
                             </p>
                             <div className="flex items-center gap-2 mt-1.5">
                               <span className={clsx('text-[11px]', dark ? 'text-[#5a6180]' : 'text-gray-400')}>
-                                {alert.time}
+                                {alert.created_at ? new Date(alert.created_at).toLocaleString() : alert.time || ''}
                               </span>
                               <span className={clsx('w-1 h-1 rounded-full', dark ? 'bg-[#5a6180]/30' : 'bg-gray-300')} />
                               <span className={clsx('text-[11px] font-medium', meta.color)}>

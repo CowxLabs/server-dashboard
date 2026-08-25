@@ -31,7 +31,7 @@ function LatencySparkline({ data, dark }) {
 function StatusDot({ status }) {
   return (
     <div className="relative shrink-0">
-      <div className={clsx('w-2.5 h-2.5 rounded-full', status === 'healthy' && 'bg-[#4ade80]', status === 'warning' && 'bg-[#fb923c]', status === 'degraded' && 'bg-[#f87171]')} />
+      <div className={clsx('w-2.5 h-2.5 rounded-full', status === 'healthy' && 'bg-[#4ade80]', status === 'warning' && 'bg-[#fb923c]', status === 'degraded' && 'bg-[#f87171]', status === 'unknown' && 'bg-gray-400')} />
       {status === 'healthy' && <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-[#4ade80] animate-pulse-dot" />}
     </div>
   )

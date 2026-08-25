@@ -9,7 +9,7 @@ RUN npm run build
 
 FROM node:22-alpine
 
-RUN apk add --no-cache tini python3 make g++
+RUN apk add --no-cache tini python3 make g++ wget
 WORKDIR /app
 
 COPY package*.json ./
@@ -17,15 +17,9 @@ RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --from=builder /app/dist ./dist
 COPY server ./server
-COPY .env.example ./.env.example
+RUN mkdir -p /app/data
 
-RUN addgroup -g 1001 -S dashboard && \
-    adduser -S dashboard -u 1001 -G dashboard && \
-    adduser dashboard docker 2>/dev/null || true
-RUN mkdir -p /app/data && chown -R dashboard:dashboard /app
-RUN chmod 644 /var/run/docker.sock 2>/dev/null || true
-
-USER dashboard
+USER root
 
 EXPOSE 4321
 
