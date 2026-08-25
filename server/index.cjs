@@ -35,7 +35,7 @@ const server = http.createServer(app)
 
 const corsOrigin = process.env.CORS_ORIGIN || '*'
 const io = new Server(server, {
-  cors: { origin: corsOrigin === '*' ? true : corsOrigin, methods: ['GET', 'POST'] },
+  cors: { origin: '*', methods: ['GET', 'POST'] },
   transports: ['polling', 'websocket'],
   allowUpgrades: true,
 })
@@ -51,7 +51,7 @@ io.use((socket, next) => {
 
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }))
 app.use(compression())
-app.use(cors({ origin: corsOrigin === '*' ? true : corsOrigin, credentials: corsOrigin !== '*' }))
+app.use(cors({ origin: '*', credentials: false }))
 app.use(express.json({ limit: '1mb' }))
 app.use(sanitizeMiddleware)
 
