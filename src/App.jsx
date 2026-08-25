@@ -20,6 +20,7 @@ const ContainerList = lazy(() => import('./components/ContainerList'))
 const AlertsFeed = lazy(() => import('./components/AlertsFeed'))
 const ProcessList = lazy(() => import('./components/ProcessList'))
 const StatusOverview = lazy(() => import('./components/StatusOverview'))
+const StorageView = lazy(() => import('./components/StorageView'))
 
 function Placeholder({ title }) {
   const { dark } = useTheme()
@@ -122,7 +123,7 @@ export default function App() {
                   <NetworkChart stats={stats} />
                 </div>
               )}
-              {activeSection === 'storage' && <Placeholder title="Storage Management" />}
+              {activeSection === 'storage' && <StorageView />}
               </Suspense>
             </div>
           </main>

@@ -66,6 +66,58 @@ app.get('/api/services', apiLimiter, authMiddleware, asyncHandler(async (req, re
 app.get('/api/services/config', apiLimiter, authMiddleware, (req, res) => res.json(getAllServices()))
 app.get('/api/docker', apiLimiter, authMiddleware, asyncHandler(async (req, res) => res.json(await getContainers())))
 app.get('/api/docker/info', apiLimiter, authMiddleware, asyncHandler(async (req, res) => res.json(await getDockerInfo())))
+app.get('/api/storage', apiLimiter, authMiddleware, (req, res) => {
+  const { execSync } = require('child_process')
+  const os = require('os')
+  const disks = []
+
+  try {
+    if (process.platform === 'win32') {
+      const raw = execSync('powershell -Command "Get-PSDrive -PSProvider FileSystem | Select-Object Name,Used,Free | ConvertTo-Json"', { encoding: 'utf8', timeout: 5000 })
+      const drives = JSON.parse(raw.trim())
+      const arr = Array.isArray(drives) ? drives : [drives]
+      for (const d of arr) {
+        const used = (d.Used || 0) / 1073741824
+        const free = (d.Free || 0) / 1073741824
+        const total = used + free
+        if (total > 0) {
+          disks.push({ device: d.Name + ':', mount: d.Name + ':\\', total: Math.round(total * 10) / 10, used: Math.round(used * 10) / 10, free: Math.round(free * 10) / 10, percent: Math.round((used / total) * 1000) / 10, type: 'local' })
+        }
+      }
+    } else {
+      const raw = execSync('df -h --output=source,fstype,size,used,avail,pcent,target 2>/dev/null | grep -E "^/dev/"', { encoding: 'utf8', timeout: 5000 })
+      const lines = raw.trim().split('\n')
+      for (const line of lines) {
+        const parts = line.trim().split(/\s+/)
+        if (parts.length >= 7) {
+          disks.push({
+            device: parts[0],
+            type: parts[1] === 'overlay' ? 'overlay' : parts[1],
+            total: parseFloat(parts[2]) || 0,
+            used: parseFloat(parts[3]) || 0,
+            free: parseFloat(parts[4]) || 0,
+            percent: parseFloat(parts[5]) || 0,
+            mount: parts[6],
+          })
+        }
+      }
+      if (disks.length === 0) {
+        const raw2 = execSync('df -h / | tail -1', { encoding: 'utf8', timeout: 5000 })
+        const p = raw2.trim().split(/\s+/)
+        disks.push({ device: p[0], type: 'local', total: p[1], used: p[2], free: p[3], percent: parseFloat(p[4]) || 0, mount: p[5] })
+      }
+    }
+  } catch {}
+
+  const memTotal = os.totalmem() / 1073741824
+  const memFree = os.freemem() / 1073741824
+  const memUsed = memTotal - memFree
+
+  res.json({
+    disks,
+    memory: { total: Math.round(memTotal * 10) / 10, used: Math.round(memUsed * 10) / 10, free: Math.round(memFree * 10) / 10, percent: Math.round((memUsed / memTotal) * 1000) / 10 },
+  })
+})
 app.get('/api/config', apiLimiter, authMiddleware, (req, res) => res.json(appConfig))
 
 app.post('/api/config', apiLimiter, writeLimiter, authMiddleware, (req, res) => {
