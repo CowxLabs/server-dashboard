@@ -22,16 +22,7 @@ const io = new Server(server, { cors: { origin: process.env.CORS_ORIGIN || '*' }
 const isProduction = process.env.NODE_ENV === 'production'
 
 app.use(helmet({
-  contentSecurityPolicy: isProduction ? {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:"],
-      connectSrc: ["'self'", "ws:", "wss:"],
-    }
-  } : false,
+  contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
 }))
 app.use(compression())
