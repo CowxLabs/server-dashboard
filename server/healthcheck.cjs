@@ -202,12 +202,13 @@ function removeService(id) {
 }
 
 let docker = null
+let discovered = false
 
 function getDocker() {
   if (docker) return docker
   try {
     const Docker = require('dockerode')
-    docker = new Docker({ socketPath: process.env.DOCKER_SOCKET || '/var/run/docker.sock', timeout: 5000 })
+    docker = new Docker({ socketPath: process.env.DOCKER_SOCKET || '/var/run/docker.sock', timeout: 3000 })
     return docker
   } catch {
     return null
@@ -215,11 +216,15 @@ function getDocker() {
 }
 
 async function discoverDockerServices() {
+  if (discovered) return
   const d = getDocker()
-  if (!d) return
+  if (!d) { discovered = true; return }
 
   try {
-    const containers = await d.listContainers({ all: false })
+    const containers = await Promise.race([
+      d.listContainers({ all: false }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))
+    ])
     const autoIds = new Set(services.filter(s => s.auto).map(s => s.id))
 
     for (const c of containers) {
@@ -258,9 +263,8 @@ async function discoverDockerServices() {
 
       console.log(`[Discovery] Added Docker service: ${name} on port ${port.PublicPort}`)
     }
-  } catch (err) {
-    console.error('[Discovery] Docker error:', err.message)
-  }
+  } catch {}
+  discovered = true
 }
 
 async function checkAllServices() {
